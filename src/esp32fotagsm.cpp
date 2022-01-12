@@ -208,6 +208,14 @@ bool esp32FOTAGSM::execOTA()
         {
             ESP_LOGD(TAG, "OTA file can be downloaded.");
 
+            if (_checksum.length() > 0)
+            {
+                ESP_LOGD(TAG, "Checksum: %s", _checksum.c_str());
+                Update.setMD5(_checksum.c_str());
+            }else{
+                ESP_LOGD(TAG, "No checksum provided");
+            }
+
             // Setup Update onProgress callback
             Update.onProgress(
                 [](unsigned int progress, unsigned int total)
@@ -647,27 +655,35 @@ bool esp32FOTAGSM::execHTTPcheck()
             const char *pltype = JSONDocument["type"];
             int plversion = JSONDocument["version"];
             const char *plhost = JSONDocument["host"];
-            _port = JSONDocument["port"];
             const char *plbin = JSONDocument["bin"];
+            const char *plckecksum = JSONDocument["checksum"];
+            _port = JSONDocument["port"];
 
-            String jshost(plhost);
-            String jsbin(plbin);
-            String fwtype(pltype);
-
-            _host = jshost;
-            _bin = jsbin;
-
+            ESP_LOGD(TAG, "Available update: ");
+            ESP_LOGD(TAG, "type %s", pltype);
+            ESP_LOGD(TAG, "version %d", plversion);
             ESP_LOGD(TAG, "Host: %s", plhost);
             ESP_LOGD(TAG, "bin: %s", plbin);
-            ESP_LOGD(TAG, "type %s", pltype);
+            ESP_LOGD(TAG, "checksum %s", plckecksum);
 
+            _host = String(plhost);
+            _bin = String(plbin);
+            _checksum = String(plckecksum);
 
-            if (plversion > _firwmareVersion && fwtype == _firwmareType)
+            if (String(pltype) == _firwmareType)
             {
-                return true;
-            }
-            else
-            {
+                if (plversion > _firwmareVersion)
+                {
+                    ESP_LOGD(TAG, "New firmware available");
+                    return true;
+                }
+                else
+                {
+                    ESP_LOGD(TAG, "No new firmware available");
+                    return false;
+                }
+            }else{
+                ESP_LOGD(TAG, "Wrong firmware type");
                 return false;
             }
         }
@@ -703,11 +719,12 @@ String esp32FOTAGSM::_getDeviceID()
 }
 
 // Force a firmware update regartless on current version
-void esp32FOTAGSM::forceUpdate(String firmwareHost, int firmwarePort, String firmwarePath)
+void esp32FOTAGSM::forceUpdate(String firmwareHost, int firmwarePort, String firmwarePath, String checksum)
 {
     _host = firmwareHost;
     _bin = firmwarePath;
     _port = firmwarePort;
+    _checksum = checksum;
     execOTA();
 }
 

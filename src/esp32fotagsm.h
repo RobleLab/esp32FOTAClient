@@ -24,7 +24,7 @@ public:
                bool chunkedDownload = false
                );
 
-  void forceUpdate(String firwmareHost, int firwmarePort, String firwmarePath);
+  void forceUpdate(String firwmareHost, int firwmarePort, String firwmarePath, String checksum);
   bool execOTA();
   bool execHTTPcheck();
   bool useDeviceID;
@@ -45,6 +45,7 @@ private:
   int _firwmareVersion;
   String _host;
   String _bin;
+  String _checksum;
   int _port;
   Client *_client;
   SemaphoreHandle_t _networkSemaphore;
